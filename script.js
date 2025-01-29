@@ -1,128 +1,100 @@
 let habits = JSON.parse(localStorage.getItem("habits")) || [];
+let currentFilter = "all";
 
 function addHabit() {
   const habitInput = document.getElementById("habit-input");
-  const habitName = habitInput.value.trim();
   const importanceSelect = document.getElementById("importance-select");
+  const habitText = habitInput.value.trim();
   const importance = importanceSelect.value;
 
-  if (habitName) {
-    habits.push({ name: habitName, importance: importance, completed: [] });
+  if (habitText) {
+    const habit = {
+      id: Date.now(),
+      text: habitText,
+      importance: importance,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    habits.unshift(habit);
+    saveAndRender();
     habitInput.value = "";
-    saveToLocalStorage();
-    renderHabits();
   }
 }
 
-function toggleHabit(index, day) {
-  const habit = habits[index];
+function toggleHabit(id) {
+  habits = habits.map((habit) =>
+    habit.id === id ? { ...habit, completed: !habit.completed } : habit
+  );
+  saveAndRender();
+}
 
-  if (!habit.completed.includes(day)) {
-    habit.completed.push(day);
-  } else {
-    habit.completed = habit.completed.filter((d) => d !== day);
-  }
+function deleteHabit(id) {
+  habits = habits.filter((habit) => habit.id !== id);
+  saveAndRender();
+}
 
-  saveToLocalStorage();
+function filterHabits(filter) {
+  currentFilter = filter;
   renderHabits();
 }
 
-function deleteHabit(index) {
-  habits.splice(index, 1);
-  saveToLocalStorage();
-  renderHabits();
+function getImportanceColor(importance) {
+  switch (importance) {
+    case "High":
+      return "text-red-500";
+    case "Medium":
+      return "text-yellow-500";
+    case "Low":
+      return "text-blue-500";
+    default:
+      return "text-gray-500";
+  }
 }
 
 function renderHabits() {
   const habitList = document.getElementById("habit-list");
-  habitList.innerHTML = "";
+  let filteredHabits = habits;
 
-  habits.forEach((habit, index) => {
-    const today = getToday();
-    const isCompleted = habit.completed.includes(today);
+  if (currentFilter === "active") {
+    filteredHabits = habits.filter((habit) => !habit.completed);
+  } else if (currentFilter === "completed") {
+    filteredHabits = habits.filter((habit) => habit.completed);
+  }
 
-    const habitItem = document.createElement("div");
-    habitItem.classList.add(
-      "habit-item",
-      "flex",
-      "flex-col",
-      "sm:flex-row",
-      "gap-3",
-      "sm:items-center",
-      "sm:justify-between",
-      "p-4",
-      "bg-green-50",
-      "rounded-lg",
-      "shadow"
-    );
-
-    const habitTextContainer = document.createElement("div");
-    habitTextContainer.classList.add("flex-1");
-
-    const habitText = document.createElement("span");
-    habitText.classList.add("text-base", "sm:text-lg", "habit-text");
-    if (isCompleted) {
-      habitText.classList.add("line-through");
-    }
-    habitText.textContent = `${habit.name} - Importance: ${habit.importance}`;
-
-    habitTextContainer.appendChild(habitText);
-
-    const actionContainer = document.createElement("div");
-    actionContainer.classList.add(
-      "flex",
-      "items-center",
-      "gap-4",
-      "justify-end"
-    );
-
-    const habitChecklist = document.createElement("input");
-    habitChecklist.type = "checkbox";
-    habitChecklist.checked = isCompleted;
-    habitChecklist.classList.add("w-5", "h-5");
-    habitChecklist.onclick = () => toggleHabit(index, today);
-
-    const deleteButton = document.createElement("button");
-    deleteButton.textContent = "Delete";
-    deleteButton.onclick = () => deleteHabit(index);
-    deleteButton.classList.add(
-      "bg-red-500",
-      "text-white",
-      "px-3",
-      "sm:px-4",
-      "py-1.5",
-      "sm:py-2",
-      "text-sm",
-      "sm:text-base",
-      "rounded-lg",
-      "hover:bg-red-600"
-    );
-
-    actionContainer.appendChild(habitChecklist);
-    actionContainer.appendChild(deleteButton);
-
-    habitItem.appendChild(habitTextContainer);
-    habitItem.appendChild(actionContainer);
-    habitList.appendChild(habitItem);
-  });
+  habitList.innerHTML = filteredHabits
+    .map(
+      (habit) => `
+                <div class="habit-item flex items-center justify-between p-4 bg-gray-50 rounded-lg ${habit.completed ? "completed" : ""}">
+                    <div class="flex items-center gap-4">
+                        <input type="checkbox" 
+                            ${habit.completed ? "checked" : ""} 
+                            onclick="toggleHabit(${habit.id})"
+                            class="w-5 h-5 rounded-full cursor-pointer">
+                        <span class="habit-text">${habit.text}</span>
+                        <span class="text-sm ${getImportanceColor(habit.importance)}">${habit.importance}</span>
+                    </div>
+                    <button onclick="deleteHabit(${habit.id})" 
+                        class="text-red-500 hover:text-red-700 transition">
+                        ✕
+                    </button>
+                </div>
+            `
+    )
+    .join("");
 }
 
-function getToday() {
-  const date = new Date();
-  return date.toISOString().split("T")[0];
-}
-
-function saveToLocalStorage() {
+function saveAndRender() {
   localStorage.setItem("habits", JSON.stringify(habits));
+  renderHabits();
 }
 
-// Add enter key support for habit input
-document
-  .getElementById("habit-input")
-  .addEventListener("keypress", function (e) {
-    if (e.key === "Enter") {
-      addHabit();
-    }
-  });
-
+// Initial render
 renderHabits();
+
+// Enter key support
+document.getElementById("habit-input").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    addHabit();
+  }
+});
