@@ -4,14 +4,18 @@ let currentFilter = "all";
 function addHabit() {
   const habitInput = document.getElementById("habit-input");
   const importanceSelect = document.getElementById("importance-select");
+  const dateInput = document.getElementById("habit-date");
+  
   const habitText = habitInput.value.trim();
   const importance = importanceSelect.value;
+  const habitDate = dateInput.value;
 
-  if (habitText) {
+  if (habitText && habitDate) {
     const habit = {
       id: Date.now(),
       text: habitText,
       importance: importance,
+      date: habitDate,
       completed: false,
       createdAt: new Date().toISOString(),
     };
@@ -19,6 +23,7 @@ function addHabit() {
     habits.unshift(habit);
     saveAndRender();
     habitInput.value = "";
+    dateInput.value = "";
   }
 }
 
@@ -65,21 +70,24 @@ function renderHabits() {
   habitList.innerHTML = filteredHabits
     .map(
       (habit) => `
-                <div class="habit-item flex items-center justify-between p-4 bg-gray-50 rounded-lg ${habit.completed ? "completed" : ""}">
-                    <div class="flex items-center gap-4">
-                        <input type="checkbox" 
-                            ${habit.completed ? "checked" : ""} 
-                            onclick="toggleHabit(${habit.id})"
-                            class="w-5 h-5 rounded-full cursor-pointer">
-                        <span class="habit-text">${habit.text}</span>
-                        <span class="text-sm ${getImportanceColor(habit.importance)}">${habit.importance}</span>
-                    </div>
-                    <button onclick="deleteHabit(${habit.id})" 
-                        class="text-red-500 hover:text-red-700 transition">
-                        ✕
-                    </button>
-                </div>
-            `
+        <div class="habit-item flex items-center justify-between p-4 bg-gray-50 rounded-lg ${habit.completed ? "completed" : ""}">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <input type="checkbox" 
+              ${habit.completed ? "checked" : ""} 
+              onclick="toggleHabit(${habit.id})"
+              class="w-5 h-5 rounded-full cursor-pointer">
+            <div>
+              <span class="habit-text font-semibold">${habit.text}</span>
+              <p class="text-sm text-gray-500">Due: ${habit.date}</p>
+            </div>
+            <span class="text-sm ${getImportanceColor(habit.importance)}">${habit.importance}</span>
+          </div>
+          <button onclick="deleteHabit(${habit.id})" 
+            class="text-red-500 hover:text-red-700 transition">
+            ✕
+          </button>
+        </div>
+      `
     )
     .join("");
 }
